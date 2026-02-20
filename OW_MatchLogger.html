@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>OW · Match Logger</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ─── RESET & TOKENS ─── */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#080b10;
+  --surface:#0e1318;
+  --surface2:#141b22;
+  --border:rgba(255,255,255,0.08);
+  --border2:rgba(255,255,255,0.14);
+  --accent:#f97316;
+  --accent-glow:rgba(249,115,22,0.25);
+  --blue:#38bdf8;
+  --green:#34d399;
+  --red:#f87171;
+  --yellow:#fbbf24;
+  --text:#e2e8f0;
+  --muted:#4b5f76;
+  --muted2:#2a3a4a;
+  --radius:12px;
+  --font-display:'Rajdhani',sans-serif;
+  --font-mono:'DM Mono',monospace;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:14px;overscroll-behavior:none;}
+
+/* ─── LAYOUT ─── */
+.app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+
+/* ─── HEADER ─── */
+.header{
+  padding:16px 20px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;
+  background:rgba(8,11,16,0.92);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+}
+.header-brand{display:flex;align-items:center;gap:10px;}
+.header-logo{
+  width:36px;height:36px;background:var(--accent);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:700;font-size:16px;color:#000;
+  box-shadow:0 0 16px var(--accent-glow);
+}
+.header-title{font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:0.04em;color:#fff;}
+.header-sub{font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;line-height:1.2;}
+#btn-submit{
+  background:var(--accent);color:#000;border:none;
+  font-family:var(--font-display);font-weight:700;font-size:15px;
+  letter-spacing:0.06em;padding:9px 18px;border-radius:8px;
+  cursor:pointer;transition:all 0.15s;
+  box-shadow:0 0 20px var(--accent-glow);
+  text-transform:uppercase;
+  min-width:80px;
+}
+#btn-submit:active{transform:scale(0.95);}
+#btn-submit.loading{background:var(--muted2);color:var(--muted);box-shadow:none;pointer-events:none;}
+#btn-submit.success{background:var(--green);color:#000;box-shadow:0 0 20px rgba(52,211,153,0.3);}
+
+/* ─── FORM BODY ─── */
+.form-body{flex:1;padding:16px 20px 100px;display:flex;flex-direction:column;gap:20px;overflow-y:auto;}
+
+/* ─── SECTION ─── */
+.section{}
+.section-label{
+  font-size:10px;letter-spacing:0.16em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:6px;
+}
+.section-label::before{content:'';display:inline-block;width:3px;height:10px;background:var(--accent);border-radius:2px;}
+.required-dot{color:var(--accent);margin-left:2px;}
+
+/* ─── SEGMENT CONTROL ─── */
+.seg{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;gap:1px;}
+.seg-opt{
+  flex:1;padding:10px 4px;text-align:center;cursor:pointer;
+  font-family:var(--font-display);font-weight:600;font-size:13px;letter-spacing:0.03em;
+  color:var(--muted);transition:all 0.15s;user-select:none;
+  border-right:1px solid var(--border);
+}
+.seg-opt:last-child{border-right:none;}
+.seg-opt.active{background:var(--accent);color:#000;}
+.seg-opt:active{opacity:0.7;}
+
+/* ─── CHIP GRID ─── */
+.chip-grid{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{
+  padding:7px 12px;border-radius:20px;
+  border:1px solid var(--border);background:var(--surface);
+  font-size:12px;color:var(--muted);cursor:pointer;
+  transition:all 0.12s;user-select:none;white-space:nowrap;
+}
+.chip.active{border-color:var(--accent);background:rgba(249,115,22,0.12);color:var(--accent);}
+.chip.active-blue{border-color:var(--blue);background:rgba(56,189,248,0.1);color:var(--blue);}
+.chip.active-green{border-color:var(--green);background:rgba(52,211,153,0.1);color:var(--green);}
+.chip:active{transform:scale(0.94);}
+
+/* Hero ban chips – numbered badge */
+.bans-wrap{display:flex;flex-direction:column;gap:8px;}
+.bans-row{display:flex;flex-wrap:wrap;gap:6px;}
+.bans-header{font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;display:flex;align-items:center;gap:6px;}
+.ban-badge{
+  background:var(--accent);color:#000;font-weight:700;
+  font-size:9px;padding:1px 5px;border-radius:10px;
+}
+
+/* ─── STEPPER ─── */
+.stepper{
+  display:flex;align-items:center;gap:0;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;height:46px;width:140px;
+}
+.stepper-btn{
+  width:44px;height:100%;border:none;background:transparent;color:var(--text);
+  font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background 0.12s;font-family:var(--font-mono);font-weight:500;
+}
+.stepper-btn:active{background:var(--muted2);}
+.stepper-val{
+  flex:1;text-align:center;font-family:var(--font-display);font-weight:700;font-size:24px;
+  color:var(--accent);
+}
+.vs-row{display:flex;align-items:center;gap:12px;}
+.vs-label{font-family:var(--font-display);font-weight:600;font-size:13px;color:var(--muted);min-width:36px;}
+.vs-sep{font-family:var(--font-display);font-weight:700;font-size:18px;color:var(--muted2);padding:0 4px;}
+
+/* ─── RANK PICKER ─── */
+.rank-picker{display:flex;flex-direction:column;gap:8px;}
+.rank-tier-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;}
+.rank-tier-row::-webkit-scrollbar{display:none;}
+.rank-tier{
+  padding:7px 14px;border-radius:20px;border:1px solid var(--border);
+  background:var(--surface);font-family:var(--font-display);font-weight:600;
+  font-size:13px;letter-spacing:0.04em;cursor:pointer;white-space:nowrap;
+  transition:all 0.12s;user-select:none;
+}
+.rank-tier.bronze.active{border-color:#cd7f32;background:rgba(205,127,50,0.12);color:#cd7f32;}
+.rank-tier.silver.active{border-color:#aaa;background:rgba(170,170,170,0.1);color:#ccc;}
+.rank-tier.gold.active{border-color:var(--yellow);background:rgba(251,191,36,0.1);color:var(--yellow);}
+.rank-tier.plat.active{border-color:var(--blue);background:rgba(56,189,248,0.1);color:var(--blue);}
+.rank-tier.diamond.active{border-color:#a78bfa;background:rgba(167,139,250,0.1);color:#a78bfa;}
+.rank-tier.master.active{border-color:var(--accent);background:var(--accent-glow);color:var(--accent);}
+.rank-tier.gm.active{border-color:var(--yellow);background:rgba(251,191,36,0.1);color:var(--yellow);}
+.rank-tier.top500.active{border-color:var(--green);background:rgba(52,211,153,0.1);color:var(--green);}
+.rank-div-row{display:flex;gap:6px;}
+.rank-div{
+  flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface);font-family:var(--font-display);font-weight:700;
+  font-size:18px;text-align:center;cursor:pointer;color:var(--muted);
+  transition:all 0.12s;user-select:none;
+}
+.rank-div.active{border-color:var(--accent);color:var(--accent);background:var(--accent-glow);}
+
+/* ─── SLIDER ─── */
+.slider-wrap{display:flex;flex-direction:column;gap:6px;}
+.slider-display{
+  display:flex;align-items:baseline;gap:4px;justify-content:flex-end;
+}
+.slider-val{font-family:var(--font-display);font-weight:700;font-size:28px;color:var(--blue);}
+.slider-unit{font-size:11px;color:var(--muted);}
+input[type=range]{
+  width:100%;-webkit-appearance:none;appearance:none;
+  height:6px;border-radius:3px;background:var(--surface2);outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+  background:var(--blue);border:2px solid #fff;cursor:pointer;
+  box-shadow:0 0 10px rgba(56,189,248,0.4);
+}
+.slider-ticks{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* ─── RESULT BUTTONS ─── */
+.result-row{display:flex;gap:8px;}
+.result-btn{
+  flex:1;padding:14px 0;border:1px solid var(--border);
+  background:var(--surface);border-radius:var(--radius);
+  font-family:var(--font-display);font-weight:700;font-size:16px;
+  letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;
+  transition:all 0.15s;user-select:none;text-align:center;color:var(--muted);
+}
+.result-btn:active{transform:scale(0.96);}
+.result-btn.win.active{border-color:var(--green);background:rgba(52,211,153,0.1);color:var(--green);box-shadow:0 0 20px rgba(52,211,153,0.15);}
+.result-btn.loss.active{border-color:var(--red);background:rgba(248,113,113,0.1);color:var(--red);box-shadow:0 0 20px rgba(248,113,113,0.15);}
+.result-btn.draw.active{border-color:var(--yellow);background:rgba(251,191,36,0.1);color:var(--yellow);}
+
+/* ─── SELECT / INPUT ─── */
+.custom-select, .custom-input, .custom-textarea{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);color:var(--text);font-family:var(--font-mono);
+  font-size:14px;padding:12px 14px;outline:none;
+  -webkit-appearance:none;appearance:none;
+  transition:border-color 0.15s;
+}
+.custom-select:focus, .custom-input:focus, .custom-textarea:focus{border-color:var(--accent);}
+.custom-textarea{resize:none;height:80px;line-height:1.5;}
+.select-wrap{position:relative;}
+.select-wrap::after{
+  content:'▾';position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  color:var(--muted);pointer-events:none;font-size:12px;
+}
+
+/* ─── TOGGLE CARD (Leaver, Thrower, etc) ─── */
+.toggle-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.toggle-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:10px 12px;cursor:pointer;
+  transition:all 0.12s;user-select:none;
+}
+.toggle-card .tc-label{font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;}
+.toggle-card .tc-options{display:flex;gap:4px;flex-wrap:wrap;}
+.tc-opt{
+  padding:4px 8px;border-radius:20px;font-size:11px;
+  border:1px solid var(--border);color:var(--muted);cursor:pointer;
+  transition:all 0.12s;
+}
+.tc-opt.active{border-color:var(--red);background:rgba(248,113,113,0.1);color:var(--red);}
+.tc-opt.none-opt.active{border-color:var(--muted);background:var(--muted2);color:var(--text);}
+
+/* ─── TOAST ─── */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:#0e1318;border:1px solid var(--border);border-radius:12px;
+  padding:12px 20px;font-size:13px;z-index:100;
+  transition:transform 0.3s cubic-bezier(0.16,1,0.3,1);
+  white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);
+}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.ok{border-color:var(--green);color:var(--green);}
+.toast.err{border-color:var(--red);color:var(--red);}
+
+/* ─── DIVIDER ─── */
+.divider{height:1px;background:var(--border);margin:4px 0;}
+
+/* Search input for dropdowns */
+.search-input{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-family:var(--font-mono);
+  font-size:13px;padding:9px 12px;outline:none;margin-bottom:8px;
+}
+.search-input:focus{border-color:var(--blue);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-brand">
+      <div class="header-logo">OW</div>
+      <div>
+        <div class="header-title">Match Log</div>
+        <div class="header-sub" id="header-dt">—</div>
+      </div>
+    </div>
+    <button id="btn-submit" onclick="submitForm()">ENVIAR</button>
+  </div>
+
+  <!-- FORM -->
+  <div class="form-body">
+
+    <!-- MODE -->
+    <div class="section">
+      <div class="section-label">Modo <span class="required-dot">*</span></div>
+      <div class="seg" id="seg-mode">
+        <div class="seg-opt" data-val="RQ: Tank" onclick="setMode(this)">🛡 Tank</div>
+        <div class="seg-opt active" data-val="RQ: Support" onclick="setMode(this)">💉 Sup</div>
+        <div class="seg-opt" data-val="RQ: Damage" onclick="setMode(this)">🔫 DPS</div>
+        <div class="seg-opt" data-val="Open Queue" onclick="setMode(this)">🎲 OQ</div>
+      </div>
+    </div>
+
+    <!-- RESULT -->
+    <div class="section">
+      <div class="section-label">Resultado <span class="required-dot">*</span></div>
+      <div class="result-row">
+        <div class="result-btn win" onclick="setResult('Win',this)">✓ Win</div>
+        <div class="result-btn loss" onclick="setResult('Loss',this)">✗ Loss</div>
+        <div class="result-btn draw" onclick="setResult('Draw',this)">— Draw</div>
+      </div>
+    </div>
+
+    <!-- MAP -->
+    <div class="section">
+      <div class="section-label">Mapa <span class="required-dot">*</span></div>
+      <input class="search-input" id="map-search" placeholder="Buscar mapa…" oninput="filterChips('map-chips',this.value)">
+      <div class="chip-grid" id="map-chips"></div>
+    </div>
+
+    <!-- HERO -->
+    <div class="section">
+      <div class="section-label">Héroe <span class="required-dot">*</span></div>
+      <input class="search-input" id="hero-search" placeholder="Buscar héroe…" oninput="filterChips('hero-chips',this.value)">
+      <div class="chip-grid" id="hero-chips"></div>
+    </div>
+
+    <!-- HERO BANS -->
+    <div class="section">
+      <div class="section-label">Hero Bans <span style="color:var(--muted)">(máx 4)</span></div>
+      <input class="search-input" id="ban-search" placeholder="Buscar para banear…" oninput="filterChips('ban-chips',this.value)">
+      <div class="chip-grid" id="ban-chips"></div>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted);">
+        Baneados: <span id="bans-display" style="color:var(--accent)">ninguno</span>
+      </div>
+    </div>
+
+    <!-- PLAYERS -->
+    <div class="section">
+      <div class="section-label">Jugadores en partida</div>
+      <div class="chip-grid" id="player-chips">
+        <div class="chip active-blue active" data-val="jpGuerrero03#1689" onclick="toggleChip(this,'players')">jpGuerrero03</div>
+        <div class="chip" data-val="carlossandov#1262" onclick="toggleChip(this,'players')">carlossandov</div>
+        <div class="chip" data-val="MrLink543#1480" onclick="toggleChip(this,'players')">MrLink543</div>
+        <div class="chip" data-val="Oreolito#1202" onclick="toggleChip(this,'players')">Oreolito</div>
+        <div class="chip" data-val="SombrAbby#1396" onclick="toggleChip(this,'players')">SombrAbby</div>
+      </div>
+    </div>
+
+    <!-- SCORES -->
+    <div class="section">
+      <div class="section-label">Marcador</div>
+      <div class="vs-row">
+        <span class="vs-label" style="color:var(--green)">Tu Eq.</span>
+        <div class="stepper" id="step-your">
+          <div class="stepper-btn" onclick="stepScore('your',-1)">−</div>
+          <div class="stepper-val" id="val-your">2</div>
+          <div class="stepper-btn" onclick="stepScore('your',1)">+</div>
+        </div>
+        <span class="vs-sep">VS</span>
+        <div class="stepper" id="step-opp">
+          <div class="stepper-btn" onclick="stepScore('opp',-1)">−</div>
+          <div class="stepper-val" id="val-opp">1</div>
+          <div class="stepper-btn" onclick="stepScore('opp',1)">+</div>
+        </div>
+        <span class="vs-label" style="color:var(--red)">Rival</span>
+      </div>
+    </div>
+
+    <!-- RANK & RANK % -->
+    <div class="section">
+      <div class="section-label">Rank del lobby</div>
+      <div class="rank-picker">
+        <div class="rank-tier-row" id="rank-tiers">
+          <div class="rank-tier bronze" data-val="Bronze" onclick="setRankTier(this)">Bronze</div>
+          <div class="rank-tier silver" data-val="Silver" onclick="setRankTier(this)">Silver</div>
+          <div class="rank-tier gold" data-val="Gold" onclick="setRankTier(this)">Gold</div>
+          <div class="rank-tier plat active" data-val="Platinum" onclick="setRankTier(this)">Platinum</div>
+          <div class="rank-tier diamond" data-val="Diamond" onclick="setRankTier(this)">Diamond</div>
+          <div class="rank-tier master" data-val="Master" onclick="setRankTier(this)">Master</div>
+          <div class="rank-tier gm" data-val="Grandmaster" onclick="setRankTier(this)">GM</div>
+          <div class="rank-tier top500" data-val="Top 500" onclick="setRankTier(this)">Top500</div>
+        </div>
+        <div class="rank-div-row" id="rank-divs">
+          <div class="rank-div active" data-val="5" onclick="setRankDiv(this)">5</div>
+          <div class="rank-div" data-val="4" onclick="setRankDiv(this)">4</div>
+          <div class="rank-div" data-val="3" onclick="setRankDiv(this)">3</div>
+          <div class="rank-div" data-val="2" onclick="setRankDiv(this)">2</div>
+          <div class="rank-div" data-val="1" onclick="setRankDiv(this)">1</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RANK % -->
+    <div class="section">
+      <div class="section-label">Rank %</div>
+      <div class="slider-wrap">
+        <div class="slider-display">
+          <div class="slider-val" id="rank-pct-display">0</div>
+          <div class="slider-unit">%</div>
+        </div>
+        <input type="range" id="rank-pct" min="-100" max="100" value="0" oninput="document.getElementById('rank-pct-display').textContent=this.value;updateSliderColor(this);">
+        <div class="slider-ticks"><span>-100</span><span>-50</span><span>0</span><span>50</span><span>100</span></div>
+      </div>
+    </div>
+
+    <!-- MODIFIERS -->
+    <div class="section">
+      <div class="section-label">Modificadores</div>
+      <div class="chip-grid" id="mod-chips">
+        <div class="chip" data-val="Calibration" onclick="toggleChip(this,'mods')">Calibration</div>
+        <div class="chip" data-val="Consolation" onclick="toggleChip(this,'mods')">Consolation</div>
+        <div class="chip" data-val="Demote Protection" onclick="toggleChip(this,'mods')">Demote Prot.</div>
+        <div class="chip" data-val="Demotion" onclick="toggleChip(this,'mods')">Demotion</div>
+        <div class="chip" data-val="Expected" onclick="toggleChip(this,'mods')">Expected</div>
+        <div class="chip" data-val="Leaver Compensation" onclick="toggleChip(this,'mods')">Leaver Comp.</div>
+        <div class="chip" data-val="Loss Trend" onclick="toggleChip(this,'mods')">Loss Trend</div>
+        <div class="chip" data-val="Pressure" onclick="toggleChip(this,'mods')">Pressure</div>
+        <div class="chip" data-val="Reversal" onclick="toggleChip(this,'mods')">Reversal</div>
+        <div class="chip" data-val="Uphill Battle" onclick="toggleChip(this,'mods')">Uphill Battle</div>
+        <div class="chip" data-val="Wide" onclick="toggleChip(this,'mods')">Wide</div>
+        <div class="chip" data-val="Win Trend" onclick="toggleChip(this,'mods')">Win Trend</div>
+      </div>
+    </div>
+
+    <!-- TOXICITY FLAGS -->
+    <div class="section">
+      <div class="section-label">Flags de toxicidad</div>
+      <div class="toggle-grid">
+        <div class="toggle-card">
+          <div class="tc-label">Leaver</div>
+          <div class="tc-options" id="tc-leaver">
+            <div class="tc-opt none-opt active" data-val="None" onclick="setTcOpt('leaver',this)">None</div>
+            <div class="tc-opt" data-val="Teammate" onclick="setTcOpt('leaver',this)">Team</div>
+            <div class="tc-opt" data-val="Opponent" onclick="setTcOpt('leaver',this)">Opp</div>
+            <div class="tc-opt" data-val="Both sides" onclick="setTcOpt('leaver',this)">Both</div>
+          </div>
+        </div>
+        <div class="toggle-card">
+          <div class="tc-label">Thrower</div>
+          <div class="tc-options" id="tc-thrower">
+            <div class="tc-opt none-opt active" data-val="None" onclick="setTcOpt('thrower',this)">None</div>
+            <div class="tc-opt" data-val="Teammate" onclick="setTcOpt('thrower',this)">Team</div>
+            <div class="tc-opt" data-val="Opponent" onclick="setTcOpt('thrower',this)">Opp</div>
+            <div class="tc-opt" data-val="Both sides" onclick="setTcOpt('thrower',this)">Both</div>
+          </div>
+        </div>
+        <div class="toggle-card">
+          <div class="tc-label">Smurf</div>
+          <div class="tc-options" id="tc-smurf">
+            <div class="tc-opt none-opt active" data-val="None" onclick="setTcOpt('smurf',this)">None</div>
+            <div class="tc-opt" data-val="Teammate" onclick="setTcOpt('smurf',this)">Team</div>
+            <div class="tc-opt" data-val="Opponent" onclick="setTcOpt('smurf',this)">Opp</div>
+            <div class="tc-opt" data-val="Both sides" onclick="setTcOpt('smurf',this)">Both</div>
+          </div>
+        </div>
+        <div class="toggle-card">
+          <div class="tc-label">Manco</div>
+          <div class="tc-options" id="tc-manco">
+            <div class="tc-opt none-opt active" data-val="None" onclick="setTcOpt('manco',this)">None</div>
+            <div class="tc-opt" data-val="Teammate" onclick="setTcOpt('manco',this)">Team</div>
+            <div class="tc-opt" data-val="Opponent" onclick="setTcOpt('manco',this)">Opp</div>
+            <div class="tc-opt" data-val="Both sides" onclick="setTcOpt('manco',this)">Both</div>
+          </div>
+        </div>
+        <div class="toggle-card">
+          <div class="tc-label">Obsoleto</div>
+          <div class="tc-options" id="tc-obsoleto">
+            <div class="tc-opt none-opt active" data-val="None" onclick="setTcOpt('obsoleto',this)">None</div>
+            <div class="tc-opt" data-val="Teammate" onclick="setTcOpt('obsoleto',this)">Team</div>
+            <div class="tc-opt" data-val="Opponent" onclick="setTcOpt('obsoleto',this)">Opp</div>
+            <div class="tc-opt" data-val="Both sides" onclick="setTcOpt('obsoleto',this)">Both</div>
+          </div>
+        </div>
+        <div class="toggle-card">
+          <div class="tc-label">Custom 6</div>
+          <div class="tc-options" id="tc-custom6">
+            <div class="tc-opt none-opt active" data-val="None" onclick="setTcOpt('custom6',this)">None</div>
+            <div class="tc-opt" data-val="Teammate" onclick="setTcOpt('custom6',this)">Team</div>
+            <div class="tc-opt" data-val="Opponent" onclick="setTcOpt('custom6',this)">Opp</div>
+            <div class="tc-opt" data-val="Both sides" onclick="setTcOpt('custom6',this)">Both</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PREDICTED RANK -->
+    <div class="section">
+      <div class="section-label">Predicted Rank</div>
+      <div class="rank-picker">
+        <div class="rank-tier-row" id="pred-rank-tiers">
+          <div class="rank-tier bronze" data-val="Bronze" onclick="setRankTier(this,'pred')">Bronze</div>
+          <div class="rank-tier silver" data-val="Silver" onclick="setRankTier(this,'pred')">Silver</div>
+          <div class="rank-tier gold" data-val="Gold" onclick="setRankTier(this,'pred')">Gold</div>
+          <div class="rank-tier plat" data-val="Platinum" onclick="setRankTier(this,'pred')">Platinum</div>
+          <div class="rank-tier diamond" data-val="Diamond" onclick="setRankTier(this,'pred')">Diamond</div>
+          <div class="rank-tier master" data-val="Master" onclick="setRankTier(this,'pred')">Master</div>
+          <div class="rank-tier gm" data-val="Grandmaster" onclick="setRankTier(this,'pred')">GM</div>
+          <div class="rank-tier top500" data-val="Top 500" onclick="setRankTier(this,'pred')">Top500</div>
+        </div>
+        <div class="rank-div-row" id="pred-rank-divs">
+          <div class="rank-div" data-val="5" onclick="setRankDiv(this,'pred')">5</div>
+          <div class="rank-div" data-val="4" onclick="setRankDiv(this,'pred')">4</div>
+          <div class="rank-div" data-val="3" onclick="setRankDiv(this,'pred')">3</div>
+          <div class="rank-div" data-val="2" onclick="setRankDiv(this,'pred')">2</div>
+          <div class="rank-div" data-val="1" onclick="setRankDiv(this,'pred')">1</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="section">
+      <div class="section-label">Notas</div>
+      <textarea class="custom-textarea" id="notes" placeholder="¿Qué pasó en la partida? Flanqueadores, tilts, carries…"></textarea>
+    </div>
+
+    <!-- BOTTOM SPACER -->
+    <div style="height:20px"></div>
+  </div><!-- /form-body -->
+</div><!-- /app -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────
+// Pega aquí la URL de tu Apps Script web app deployment:
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxK6DvDz6MS7ZvtWKFsrYMDsWt5mYAg3nKls7StlGmgbctghYeqklQK2OslCSccyLJW/exec';
+
+// ─── DATA ─────────────────────────────────────────────────
+const MAPS = [
+  // Control
+  'Antarctic Peninsula','Busan','Ilios','Lijiang Tower','Nepal','Oasis','Samoa',
+  // Escort
+  'Circuit Royal','Dorado','Havana','Junkertown','Rialto','Route 66',
+  'Shambali Monastery','Watchpoint: Gibraltar',
+  // Hybrid
+  'Blizzard World','Eichenwalde','Hollywood','King\'s Row','Midtown',
+  'Numbani','Paraíso',
+  // Push
+  'Colosseo','Esperança','New Queen Street','Runasapi',
+  // Flashpoint
+  'New Junk City','Suravasa',
+  // Clash
+  'Hanaoka','Throne of Anubis',
+];
+
+const HEROES = [
+  // Tank
+  'D.Va','Doomfist','Hazard','Junker Queen','Mauga','Orisa','Ramattra',
+  'Reinhardt','Roadhog','Sigma','Winston','Wrecking Ball','Zarya',
+  // Damage
+  'Ashe','Bastion','Cassidy','Echo','Genji','Hanzo','Junkrat','Mei',
+  'Pharah','Reaper','Sojourn','Soldier: 76','Sombra','Symmetra',
+  'Torbjörn','Tracer','Venture','Widowmaker',
+  // Support
+  'Ana','Baptiste','Brigitte','Illari','Juno','Kiriko','Lifeweaver',
+  'Lúcio','Mercy','Moira','Zenyatta',
+  // Custom/event
+  'Anran','Jetpack Cat','Domina','Vendetta','Mizuki','Wuyang','Emre',
+];
+
+// ─── STATE ────────────────────────────────────────────────
+const state = {
+  mode: 'RQ: Support',
+  result: null,
+  map: null,
+  hero: null,
+  bans: [],
+  players: ['jpGuerrero03#1689'],
+  yourScore: 2,
+  oppScore: 1,
+  rankTier: 'Platinum',
+  rankDiv: '5',
+  rankPct: 0,
+  mods: [],
+  leaver:'None', thrower:'None', smurf:'None', manco:'None', obsoleto:'None', custom6:'None',
+  predRankTier: null,
+  predRankDiv: null,
+  notes: '',
+};
+
+// ─── INIT ─────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  buildChips('map-chips', MAPS, 'map', false);
+  buildChips('hero-chips', HEROES, 'hero', false);
+  buildChips('ban-chips', HEROES, 'bans', true);
+  updateDateTime();
+  setInterval(updateDateTime, 30000);
+  updateSliderColor(document.getElementById('rank-pct'));
+});
+
+function updateDateTime() {
+  const now = new Date();
+  const s = now.toLocaleDateString('es-MX',{weekday:'short',month:'short',day:'numeric'})
+    + ' · ' + now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('header-dt').textContent = s;
+}
+
+// ─── CHIP BUILDER ─────────────────────────────────────────
+function buildChips(containerId, items, key, multi) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = items.map(item => {
+    const isMap = key === 'map';
+    return `<div class="chip" data-val="${item}" data-key="${key}"
+      onclick="toggleChip(this,'${key}')">${item}</div>`;
+  }).join('');
+}
+
+function filterChips(containerId, query) {
+  const chips = document.querySelectorAll(`#${containerId} .chip`);
+  const q = query.toLowerCase().trim();
+  chips.forEach(c => {
+    c.style.display = (!q || c.dataset.val.toLowerCase().includes(q)) ? '' : 'none';
+  });
+}
+
+// ─── TOGGLE CHIP ──────────────────────────────────────────
+function toggleChip(el, key) {
+  const val = el.dataset.val;
+
+  if (key === 'map') {
+    document.querySelectorAll('#map-chips .chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    state.map = val;
+  } else if (key === 'hero') {
+    document.querySelectorAll('#hero-chips .chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    state.hero = val;
+  } else if (key === 'bans') {
+    if (el.classList.contains('active')) {
+      el.classList.remove('active');
+      state.bans = state.bans.filter(b => b !== val);
+    } else if (state.bans.length < 4) {
+      el.classList.add('active');
+      state.bans.push(val);
+    } else {
+      showToast('Máximo 4 bans', 'err'); return;
+    }
+    const d = document.getElementById('bans-display');
+    d.textContent = state.bans.length ? state.bans.join(', ') : 'ninguno';
+  } else if (key === 'players') {
+    if (el.classList.contains('active')) {
+      el.classList.remove('active');
+      el.classList.remove('active-blue');
+      state.players = state.players.filter(p => p !== val);
+    } else {
+      el.classList.add('active');
+      el.classList.add('active-blue');
+      state.players.push(val);
+    }
+  } else if (key === 'mods') {
+    if (el.classList.contains('active')) {
+      el.classList.remove('active');
+      state.mods = state.mods.filter(m => m !== val);
+    } else {
+      el.classList.add('active');
+      state.mods.push(val);
+    }
+  }
+}
+
+// ─── MODE ─────────────────────────────────────────────────
+function setMode(el) {
+  document.querySelectorAll('#seg-mode .seg-opt').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+  state.mode = el.dataset.val;
+}
+
+// ─── RESULT ───────────────────────────────────────────────
+function setResult(val, el) {
+  document.querySelectorAll('.result-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  state.result = val;
+}
+
+// ─── SCORE ────────────────────────────────────────────────
+function stepScore(side, delta) {
+  const key = side === 'your' ? 'yourScore' : 'oppScore';
+  state[key] = Math.max(0, Math.min(9, state[key] + delta));
+  document.getElementById('val-' + side).textContent = state[key];
+}
+
+// ─── RANK ─────────────────────────────────────────────────
+function setRankTier(el, prefix) {
+  const container = prefix ? 'pred-rank-tiers' : 'rank-tiers';
+  document.querySelectorAll(`#${container} .rank-tier`).forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  if (prefix) state.predRankTier = el.dataset.val;
+  else state.rankTier = el.dataset.val;
+}
+
+function setRankDiv(el, prefix) {
+  const container = prefix ? 'pred-rank-divs' : 'rank-divs';
+  document.querySelectorAll(`#${container} .rank-div`).forEach(d => d.classList.remove('active'));
+  el.classList.add('active');
+  if (prefix) state.predRankDiv = el.dataset.val;
+  else state.rankDiv = el.dataset.val;
+}
+
+// ─── SLIDER COLOR ─────────────────────────────────────────
+function updateSliderColor(input) {
+  const v = parseInt(input.value);
+  const pct = (v + 100) / 200 * 100;
+  const color = v > 0 ? 'var(--green)' : v < 0 ? 'var(--red)' : 'var(--blue)';
+  input.style.background = `linear-gradient(to right, ${color} ${pct}%, var(--surface2) ${pct}%)`;
+  document.getElementById('rank-pct-display').style.color = color;
+}
+
+// ─── TOXICITY TOGGLE ──────────────────────────────────────
+function setTcOpt(key, el) {
+  const container = el.closest('.tc-options');
+  container.querySelectorAll('.tc-opt').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+  const stateKey = key === 'custom6' ? 'custom6' : key;
+  state[stateKey] = el.dataset.val;
+}
+
+// ─── TOAST ────────────────────────────────────────────────
+function showToast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── SUBMIT ───────────────────────────────────────────────
+function submitForm() {
+  // Validation
+  if (!state.result) { showToast('⚠ Selecciona un resultado', 'err'); return; }
+  if (!state.map) { showToast('⚠ Selecciona un mapa', 'err'); return; }
+  if (!state.hero) { showToast('⚠ Selecciona tu héroe', 'err'); return; }
+
+  const btn = document.getElementById('btn-submit');
+  btn.textContent = '…';
+  btn.classList.add('loading');
+
+  const now = new Date();
+  const dateTime = now.toISOString().replace('T',' ').substring(0,19);
+  const groupSize = state.players.length;
+  const groupLabel = ['Solo (1)','Duo (2)','Trio (3)','Quartet (4)','Quintet (5)'][groupSize - 1] || `${groupSize}`;
+
+  const payload = {
+    mode: state.mode,
+    map: state.map,
+    players: state.players.join(', '),
+    hero: state.hero,
+    heroBans: state.bans.join(', '),
+    yourTeam: state.yourScore,
+    oppTeam: state.oppScore,
+    rank: `${state.rankTier} ${state.rankDiv}`,
+    rankPct: parseInt(document.getElementById('rank-pct').value),
+    modifiers: state.mods.join(', '),
+    result: state.result,
+    groupSize: groupLabel,
+    dateTime: dateTime,
+    leaver: state.leaver,
+    thrower: state.thrower,
+    smurf: state.smurf,
+    manco: state.manco,
+    obsoleto: state.obsoleto,
+    custom6: state.custom6,
+    predictedRank: state.predRankTier ? `${state.predRankTier} ${state.predRankDiv || ''}`.trim() : '',
+    notes: document.getElementById('notes').value,
+  };
+
+  // ─── Envío via GET + URLSearchParams ─────────────────────────────
+  // Apps Script rechaza POST de dominios externos (401).
+  // Solución: GET con params codificados en la URL + mode:'no-cors'.
+  // La respuesta es opaca pero la petición llega completa al script.
+  const params = new URLSearchParams();
+  Object.entries(payload).forEach(([k, v]) => params.append(k, String(v)));
+  const url = APPS_SCRIPT_URL + '?' + params.toString();
+
+  fetch(url, { method: 'GET', mode: 'no-cors' })
+  .then(() => {
+    btn.textContent = '✓ OK';
+    btn.classList.remove('loading');
+    btn.classList.add('success');
+    showToast('✓ Partida guardada', 'ok');
+    setTimeout(() => { btn.textContent = 'ENVIAR'; btn.classList.remove('success'); }, 2500);
+    resetForm();
+  })
+  .catch(() => {
+    btn.textContent = 'ENVIAR';
+    btn.classList.remove('loading');
+    showToast('✗ Sin conexón', 'err');
+  });
+}
+
+// ─── RESET ────────────────────────────────────────────────
+function resetForm() {
+  // Reset result
+  document.querySelectorAll('.result-btn').forEach(b => b.classList.remove('active'));
+  state.result = null;
+
+  // Reset map/hero
+  document.querySelectorAll('#map-chips .chip, #hero-chips .chip').forEach(c => c.classList.remove('active'));
+  state.map = null; state.hero = null;
+
+  // Reset bans
+  document.querySelectorAll('#ban-chips .chip').forEach(c => c.classList.remove('active'));
+  state.bans = [];
+  document.getElementById('bans-display').textContent = 'ninguno';
+
+  // Reset mods
+  document.querySelectorAll('#mod-chips .chip').forEach(c => c.classList.remove('active'));
+  state.mods = [];
+
+  // Reset toxicity
+  ['leaver','thrower','smurf','manco','obsoleto','custom6'].forEach(k => {
+    const container = document.getElementById(`tc-${k}`);
+    container.querySelectorAll('.tc-opt').forEach(o => o.classList.remove('active'));
+    container.querySelector('.none-opt').classList.add('active');
+    state[k] = 'None';
+  });
+
+  // Reset notes
+  document.getElementById('notes').value = '';
+
+  // Reset scores
+  state.yourScore = 2; state.oppScore = 1;
+  document.getElementById('val-your').textContent = '2';
+  document.getElementById('val-opp').textContent = '1';
+
+  // Scroll to top
+  document.querySelector('.form-body').scrollTop = 0;
+}
+</script>
+</body>
+</html>
